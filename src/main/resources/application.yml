@@ -1,0 +1,15 @@
+logging:
+  level:
+    org.springframework: WARN
+    fr.cailliaud: DEBUG
+
+batch:
+  file: file:./data/heroes.xml
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: alex
+    password: password
+    database-platform: org.hibernate.dialect.H2Dialect

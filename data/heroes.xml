@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<heroes>
+    <hero>
+        <name>Arthur</name>
+        <race>Human</race>
+    </hero>
+    <hero>
+        <name>Olvac</name>
+        <race>Troll</race>
+    </hero>
+    <hero>
+        <name>Sylvanas</name>
+        <race>Elf</race>
+    </hero>
+    <hero>
+        <name>Al Heknor</name>
+        <race>Undead</race>
+    </hero>
+    <hero>
+        <name>Meliodas</name>
+        <race>Demon</race>
+    </hero>
+    <hero>
+        <name>Nicolas</name>
+        <race>Human</race>
+    </hero>
+    <hero>
+        <name>Elena</name>
+        <race>Elf</race>
+    </hero>
+    <hero>
+        <name>OrkVak</name>
+        <race>Troll</race>
+    </hero>
+    <hero>
+        <name>Mickus</name>
+        <race>Undead</race>
+    </hero>
+    <hero>
+        <name>Valira</name>
+        <race>Elf</race>
+    </hero>
+
+
+</heroes>
