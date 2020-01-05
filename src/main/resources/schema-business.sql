@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS heroes;
+
+CREATE TABLE heroes(
+    name VARCHAR(20) NOT NULL,
+    race VARCHAR(30) NOT NULL,
+    PRIMARY KEY (name)
+);

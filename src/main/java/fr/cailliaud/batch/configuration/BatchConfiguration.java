@@ -6,12 +6,13 @@ import fr.cailliaud.batch.pojo.Race;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.ItemReadListener;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.SkipListener;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.BatchConfigurer;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
-import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.*;
 import org.springframework.batch.item.*;
+import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
+import org.springframework.batch.item.database.JdbcBatchItemWriter;
+import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -21,8 +22,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.oxm.UnmarshallingFailureException;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
+import org.xml.sax.SAXParseException;
 
+import javax.sql.DataSource;
 import java.util.List;
 
 
@@ -32,9 +36,13 @@ import java.util.List;
 @Slf4j
 public class BatchConfiguration {
 
+    @Autowired
+    @Qualifier("batchDataSource")
+    DataSource batchDataSource;
+
     @Bean
-    public BatchConfigurer batchConfigurer() {
-        return new CustomBatchConfigurer();
+    BatchConfigurer configurer(){
+        return new DefaultBatchConfigurer(batchDataSource);
     }
 
     @Autowired
@@ -55,35 +63,53 @@ public class BatchConfiguration {
 
     @Bean
     public Step heroLoad(
-        @Qualifier("itemReadListener") ItemReadListener itemReadListener,
+        @Qualifier("heroSkipListener") SkipListener heroSkipListener,
         @Qualifier("heroReader") ItemReader<Hero> heroReader,
         @Qualifier("heroProcessor") ItemProcessor<Hero, Hero> heroProcessor,
         @Qualifier("heroWriter") ItemWriter<Hero> heroWriter
     ){
         return this.stepBuilders.get("heroLoad")
             .<Hero, Hero> chunk(2)
-            .listener(itemReadListener)
             .reader(heroReader)
             .processor(heroProcessor)
             .writer(heroWriter)
+            .faultTolerant()
+            .skip(UnmarshallingFailureException.class)
+            .skipLimit(3)
+            .listener(heroSkipListener)
             .build();
     }
 
     @Bean
-    public ItemReadListener itemReadListener(){
-        return new ItemReadListener() {
-            @Override public void beforeRead() {
+    public SkipListener<Hero,Hero> heroSkipListener(){
+      return new SkipListener<Hero,Hero>() {
+          @Override public void onSkipInRead(Throwable t) {
 
-            }
+              if(t instanceof UnmarshallingFailureException){
+                  UnmarshallingFailureException marshallExc = (UnmarshallingFailureException)t;
 
-            @Override public void afterRead(Object item) {
+                  Throwable rootCause = marshallExc.getRootCause();
+                  log.error("Exception occred reading item : {}",rootCause.getClass().getName());
+                  if(log.isDebugEnabled()){
+                      log.debug("Root cause : ",rootCause);
+                  }else{
+                      log.warn("Root cause : {}",rootCause.getMessage());
+                  }
 
-            }
+              }else{
+                  log.error("Error occcured in read phase.",t.getCause());
+              }
 
-            @Override public void onReadError(Exception ex) {
+          }
 
-            }
-        };
+          @Override public void onSkipInWrite(Hero item, Throwable t) {
+
+          }
+
+          @Override public void onSkipInProcess(Hero item, Throwable t) {
+
+          }
+      };
     }
 
     @Bean
@@ -122,11 +148,11 @@ public class BatchConfiguration {
     }
 
     @Bean
-    public ItemWriter<Hero> heroWriter(){
-        return new ItemWriter<Hero>() {
-            @Override public void write(List<? extends Hero> items) throws Exception {
-                items.forEach(item -> log.info(item.toString()));
-            }
-        };
+    public JdbcBatchItemWriter<Hero> heroWriter(@Qualifier("businessDataSource") DataSource dataSource) {
+        return new JdbcBatchItemWriterBuilder<Hero>()
+            .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
+            .sql("INSERT INTO heroes (name, race) VALUES (:name, :race.label)")
+            .dataSource(dataSource)
+            .build();
     }
 }

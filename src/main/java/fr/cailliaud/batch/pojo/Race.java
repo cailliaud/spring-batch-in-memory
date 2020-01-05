@@ -8,11 +8,22 @@ import javax.xml.bind.annotation.XmlType;
 @XmlEnum
 public enum Race {
     @XmlEnumValue("Human")
-    HUMAN,
+    HUMAN("Human"),
     @XmlEnumValue("Troll")
-    TROLL,
+    TROLL("Troll"),
     @XmlEnumValue("Elf")
-    ELF,
+    ELF("Elf"),
     @XmlEnumValue("Undead")
-    UNDEAD
+    UNDEAD("Undead");
+
+    private String label;
+
+    Race(String label){
+        this.label=label;
+    }
+
+    public String getLabel(){
+        return this.label;
+    }
+
 }
